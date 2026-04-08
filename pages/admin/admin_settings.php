@@ -175,6 +175,7 @@ $admin = getCurrentAdmin();
             <ul class="sidebar-menu">
                 <li><a href="admin_dashboard.php"><i class="fas fa-chart-line"></i> Dashboard</a></li>
                 <li><a href="admin_orders.php"><i class="fas fa-shopping-cart"></i> Daftar Order</a></li>
+                <li><a href="admin_packages.php"><i class="fas fa-box"></i> Paket Game</a></li>
                 <li><a href="admin_users.php"><i class="fas fa-users"></i> Kelola Users</a></li>
                 <li><a href="admin_products.php"><i class="fas fa-gamepad"></i> Kelola Produk</a></li>
                 <li><a href="admin_settings.php" class="active"><i class="fas fa-cog"></i> Pengaturan</a></li>

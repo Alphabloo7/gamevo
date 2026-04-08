@@ -152,6 +152,7 @@ $user = getCurrentUser();
             <div class="nav-menu">
                 <a href="../../index.php" class="nav-link">BERANDA</a>
                 <a href="user_profile.php" class="nav-link active">PROFIL</a>
+                <a href="user_orders.php" class="nav-link">PESANAN</a>
                 <a href="user_logout.php" class="nav-link">LOGOUT</a>
             </div>
         </div>

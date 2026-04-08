@@ -244,7 +244,7 @@ function logoutUser() {
  */
 function requireLogin() {
     if (!isLoggedIn()) {
-        header("Location: login.php");
+        header("Location: user_login.php");
         exit();
     }
 }

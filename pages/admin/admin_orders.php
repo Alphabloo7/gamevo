@@ -297,6 +297,7 @@ function formatCurrency($amount) {
             <ul class="sidebar-menu">
                 <li><a href="admin_dashboard.php"><i class="fas fa-chart-line"></i> Dashboard</a></li>
                 <li><a href="admin_orders.php" class="active"><i class="fas fa-shopping-cart"></i> Daftar Order</a></li>
+                <li><a href="admin_packages.php"><i class="fas fa-box"></i> Paket Game</a></li>
                 <li><a href="admin_users.php"><i class="fas fa-users"></i> Kelola Users</a></li>
                 <li><a href="admin_products.php"><i class="fas fa-gamepad"></i> Kelola Produk</a></li>
                 <li><a href="admin_settings.php"><i class="fas fa-cog"></i> Pengaturan</a></li>
@@ -357,17 +358,24 @@ function formatCurrency($amount) {
                                         </td>
                                         <td><?php echo date('d M Y H:i', strtotime($order['order_date'])); ?></td>
                                         <td>
-                                            <form method="POST" class="update-form">
-                                                <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
-                                                <select name="status" class="select-status">
-                                                    <option value="">Ubah Status</option>
-                                                    <option value="pending" <?php echo $order['status'] === 'pending' ? 'disabled' : ''; ?>>Pending</option>
-                                                    <option value="processing" <?php echo $order['status'] === 'processing' ? 'disabled' : ''; ?>>Processing</option>
-                                                    <option value="completed" <?php echo $order['status'] === 'completed' ? 'disabled' : ''; ?>>Completed</option>
-                                                    <option value="cancelled" <?php echo $order['status'] === 'cancelled' ? 'disabled' : ''; ?>>Cancelled</option>
-                                                </select>
-                                                <button type="submit" class="update-btn">Update</button>
-                                            </form>
+                                            <div class="action-buttons">
+                                                <?php if (!empty($order['payment_proof'])): ?>
+                                                    <button class="view-proof-btn" onclick="viewPaymentProof('<?php echo htmlspecialchars($order['payment_proof']); ?>')">
+                                                        <i class="fas fa-eye"></i> Lihat
+                                                    </button>
+                                                <?php endif; ?>
+                                                <form method="POST" class="update-form">
+                                                    <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
+                                                    <select name="status" class="select-status">
+                                                        <option value="">Ubah Status</option>
+                                                        <option value="pending" <?php echo $order['status'] === 'pending' ? 'disabled' : ''; ?>>Pending</option>
+                                                        <option value="processing" <?php echo $order['status'] === 'processing' ? 'disabled' : ''; ?>>Processing</option>
+                                                        <option value="completed" <?php echo $order['status'] === 'completed' ? 'disabled' : ''; ?>>Completed</option>
+                                                        <option value="cancelled" <?php echo $order['status'] === 'cancelled' ? 'disabled' : ''; ?>>Cancelled</option>
+                                                    </select>
+                                                    <button type="submit" class="update-btn">Update</button>
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -382,7 +390,187 @@ function formatCurrency($amount) {
             </div>
         </main>
     </div>
-</body>
-</html>
+
+    <!-- Payment Proof Modal -->
+    <div id="proofModal" class="proof-modal">
+        <div class="proof-modal-content">
+            <div class="proof-modal-header">
+                <h2>Bukti Pembayaran</h2>
+                <button class="proof-modal-close" onclick="closeProofModal()">&times;</button>
+            </div>
+            <div class="proof-modal-body">
+                <div id="proofContent" class="proof-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .view-proof-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: background-color 0.3s ease;
+        }
+
+        .view-proof-btn:hover {
+            background-color: #45a049;
+        }
+
+        .proof-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .proof-modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .proof-modal-content {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+
+        .proof-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            background-color: #f8f9fa;
+        }
+
+        .proof-modal-header h2 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .proof-modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s ease;
+        }
+
+        .proof-modal-close:hover {
+            color: #333;
+        }
+
+        .proof-modal-body {
+            padding: 20px;
+        }
+
+        .proof-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 300px;
+        }
+
+        .proof-content img {
+            max-width: 100%;
+            max-height: 70vh;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .proof-content embed,
+        .proof-content iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+            border-radius: 4px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+
+    <script>
+        function viewPaymentProof(proofPath) {
+            const modal = document.getElementById('proofModal');
+            const proofContent = document.getElementById('proofContent');
+            const extension = proofPath.split('.').pop().toLowerCase();
+
+            if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
+                proofContent.innerHTML = '<img src="../../' + proofPath + '" alt="Payment Proof">';
+            } else if (extension === 'pdf') {
+                proofContent.innerHTML = '<embed src="../../' + proofPath + '" type="application/pdf">';
+            } else {
+                proofContent.innerHTML = '<p>Format file tidak didukung untuk preview</p>';
+            }
+
+            modal.classList.add('show');
+        }
+
+        function closeProofModal() {
+            const modal = document.getElementById('proofModal');
+            modal.classList.remove('show');
+        }
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('proofModal');
+            if (event.target === modal) {
+                closeProofModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeProofModal();
+            }
+        });
+    </script>
+
 
 
