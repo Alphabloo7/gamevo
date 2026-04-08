@@ -104,6 +104,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $stmt->close();
         }
+    } elseif ($action === 'add_game') {
+        $game_slug = trim($_POST['game_slug'] ?? '');
+        $game_name = trim($_POST['game_name'] ?? '');
+        $game_currency = trim($_POST['game_currency'] ?? '');
+        $game_description = trim($_POST['game_description'] ?? '');
+        
+        if (empty($game_slug) || empty($game_name) || empty($game_currency)) {
+            $message = 'Field Slug, Nama Game, dan Currency wajib diisi';
+            $message_type = 'error';
+        } elseif (empty($_FILES['game_image']['name'])) {
+            $message = 'File gambar wajib diupload';
+            $message_type = 'error';
+        } else {
+            // Validate file upload
+            $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            $max_size = 2 * 1024 * 1024; // 2MB
+            
+            $file = $_FILES['game_image'];
+            
+            if (!in_array($file['type'], $allowed_types)) {
+                $message = 'Hanya format JPG, PNG, GIF, atau WEBP yang diizinkan';
+                $message_type = 'error';
+            } elseif ($file['size'] > $max_size) {
+                $message = 'Ukuran file tidak boleh lebih dari 2MB';
+                $message_type = 'error';
+            } else {
+                // Check if slug already exists
+                $check_stmt = $conn->prepare("SELECT id FROM games WHERE slug = ?");
+                $check_stmt->bind_param("s", $game_slug);
+                $check_stmt->execute();
+                
+                if ($check_stmt->get_result()->num_rows > 0) {
+                    $message = 'Slug game sudah digunakan';
+                    $message_type = 'error';
+                    $check_stmt->close();
+                } else {
+                    $check_stmt->close();
+                    
+                    // Create upload directory if not exists
+                    $upload_dir = '../../assets/uploads/games/';
+                    if (!is_dir($upload_dir)) {
+                        mkdir($upload_dir, 0755, true);
+                    }
+                    
+                    // Generate unique filename
+                    $file_ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+                    $new_filename = 'game_' . time() . '_' . rand(1000, 9999) . '.' . $file_ext;
+                    $file_path = $upload_dir . $new_filename;
+                    $db_path = 'assets/uploads/games/' . $new_filename;
+                    
+                    // Move uploaded file
+                    if (move_uploaded_file($file['tmp_name'], $file_path)) {
+                        $stmt = $conn->prepare("INSERT INTO games (slug, name, currency, description, image_url, is_active) VALUES (?, ?, ?, ?, ?, TRUE)");
+                        $stmt->bind_param("sssss", $game_slug, $game_name, $game_currency, $game_description, $db_path);
+                        if ($stmt->execute()) {
+                            $message = '✓ Game berhasil ditambahkan';
+                            $message_type = 'success';
+                            header("refresh:2;url=admin_packages.php");
+                        } else {
+                            $message = 'Gagal menambahkan game: ' . $stmt->error;
+                            $message_type = 'error';
+                        }
+                        $stmt->close();
+                    } else {
+                        $message = 'Gagal mengupload file gambar';
+                        $message_type = 'error';
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -478,7 +548,6 @@ foreach ($games as $game) {
                 <li><a href="admin_orders.php"><i class="fas fa-shopping-cart"></i> Orders</a></li>
                 <li><a href="admin_packages.php" class="active"><i class="fas fa-box"></i> Paket Game</a></li>
                 <li><a href="admin_users.php"><i class="fas fa-users"></i> Kelola Users</a></li>
-                <li><a href="admin_products.php"><i class="fas fa-gamepad"></i> Kelola Produk</a></li>
                 <li><a href="admin_settings.php"><i class="fas fa-cog"></i> Pengaturan</a></li>
             </ul>
         </aside>
@@ -490,7 +559,12 @@ foreach ($games as $game) {
                 <div class="topbar-title">
                     <h1>Kelola Paket Game</h1>
                 </div>
-                <a href="admin_logout.php" class="logout-btn">Logout</a>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="btn-add-game" onclick="openAddGameModal()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
+                        <i class="fas fa-plus"></i> Tambah Game
+                    </button>
+                    <a href="admin_logout.php" class="logout-btn">Logout</a>
+                </div>
             </div>
             
             <!-- Content -->
@@ -604,6 +678,50 @@ foreach ($games as $game) {
         </main>
     </div>
 
+    <!-- Add Game Modal -->
+    <div id="addGameModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Tambah Game Baru</h2>
+                <button class="modal-close" onclick="closeAddGameModal()">&times;</button>
+            </div>
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="add_game">
+                
+                <div class="form-group">
+                    <label>Slug Game</label>
+                    <input type="text" name="game_slug" placeholder="Contoh: mobile-legends" required>
+                    <small style="color: #999;">Gunakan huruf kecil dan tanda hubung (-)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Nama Game</label>
+                    <input type="text" name="game_name" placeholder="Contoh: Mobile Legends" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Currency (Mata Uang)</label>
+                    <input type="text" name="game_currency" placeholder="Contoh: Diamond" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Deskripsi Game</label>
+                    <input type="text" name="game_description" placeholder="Deskripsi singkat tentang game" style="height: 80px; padding: 12px; resize: vertical;">
+                </div>
+                
+                <div class="form-group">
+                    <label>Gambar Game</label>
+                    <input type="file" name="game_image" accept="image/jpeg,image/png,image/gif,image/webp" required>
+                    <small style="color: #999;">Format: JPG, PNG, GIF, WEBP. Max 2MB</small>
+                </div>
+                
+                <button type="submit" class="submit-btn" style="width: 100%;">
+                    <i class="fas fa-plus"></i> Tambah Game
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- Edit Modal -->
     <div id="editModal" class="modal">
         <div class="modal-content">
@@ -639,6 +757,14 @@ foreach ($games as $game) {
     </div>
 
     <script>
+        function openAddGameModal() {
+            document.getElementById('addGameModal').classList.add('show');
+        }
+        
+        function closeAddGameModal() {
+            document.getElementById('addGameModal').classList.remove('show');
+        }
+        
         function editPackage(package) {
             document.getElementById('edit_package_id').value = package.id;
             document.getElementById('edit_package_name').value = package.name;
@@ -652,8 +778,13 @@ foreach ($games as $game) {
         }
         
         window.addEventListener('click', function(event) {
-            const modal = document.getElementById('editModal');
-            if (event.target === modal) {
+            const addModal = document.getElementById('addGameModal');
+            const editModal = document.getElementById('editModal');
+            
+            if (event.target === addModal) {
+                closeAddGameModal();
+            }
+            if (event.target === editModal) {
                 closeEditModal();
             }
         });

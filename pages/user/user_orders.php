@@ -363,11 +363,12 @@ function getStatusBadge($status) {
         function viewProof(proofPath) {
             const modal = document.getElementById('proofModal');
             const content = document.getElementById('proofContent');
+            const fullPath = '../../' + proofPath;
             
             if (proofPath.endsWith('.pdf')) {
-                content.innerHTML = '<iframe src="' + proofPath + '" style="width: 100%; height: 500px; border: none; border-radius: 8px;"></iframe>';
+                content.innerHTML = '<iframe src="' + fullPath + '" style="width: 100%; height: 500px; border: none; border-radius: 8px;"></iframe>';
             } else {
-                content.innerHTML = '<img src="' + proofPath + '" class="modal-image" alt="Bukti Pembayaran">';
+                content.innerHTML = '<img src="' + fullPath + '" class="modal-image" alt="Bukti Pembayaran">';
             }
             
             modal.style.display = 'block';

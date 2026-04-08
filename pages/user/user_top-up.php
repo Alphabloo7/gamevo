@@ -22,14 +22,16 @@ $message_type = '';
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
+    $game_id = isset($_POST['game_id']) ? intval($_POST['game_id']) : 0;
+    $package_id = isset($_POST['package_id']) ? intval($_POST['package_id']) : 0;
     $game_name = isset($_POST['game']) ? trim($_POST['game']) : '';
     $package_name = isset($_POST['package']) ? trim($_POST['package']) : '';
     $total_price = isset($_POST['total_price']) ? floatval($_POST['total_price']) : 0;
     $game_account = isset($_POST['game_account']) ? trim($_POST['game_account']) : '';
     
     // Validate inputs
-    if (empty($game_name) || empty($package_name) || empty($total_price) || empty($game_account)) {
-        $message = 'Mohon lengkapi semua field';
+    if (empty($game_name) || empty($package_name) || empty($total_price) || empty($game_account) || $package_id <= 0) {
+        $message = 'Mohon lengkapi semua field dengan benar';
         $message_type = 'error';
     } elseif (!isset($_FILES['payment_proof']) || $_FILES['payment_proof']['error'] === UPLOAD_ERR_NO_FILE) {
         $message = 'Mohon upload bukti pembayaran';
@@ -54,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
             
             if (move_uploaded_file($file['tmp_name'], $file_path)) {
                 // Insert order into database
-                $query = "INSERT INTO orders (user_id, product_id, quantity, total_price, status, payment_method, payment_proof, notes, order_date) 
+                $query = "INSERT INTO orders (user_id, game_package_id, quantity, total_price, status, payment_method, payment_proof, notes, order_date) 
                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
                 
                 $stmt = $conn->prepare($query);
@@ -62,18 +64,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                     $message = 'Database error: ' . $conn->error;
                     $message_type = 'error';
                 } else {
-                    // Use product_id = 1 for now (we'll use it to track game name in notes)
                     $status = 'pending';
                     $payment_method = 'qris';
                     $quantity = 1;
-                    $product_id = 1;
                     $notes = json_encode([
                         'game' => $game_name,
                         'package' => $package_name,
                         'game_account' => $game_account
                     ]);
                     
-                    $stmt->bind_param('iiiisss', $user['id'], $product_id, $quantity, $total_price, $status, $payment_method, $db_file_path, $notes);
+                    $stmt->bind_param('iiidssss', $user['id'], $package_id, $quantity, $total_price, $status, $payment_method, $db_file_path, $notes);
                     
                     if ($stmt->execute()) {
                         $message = '✓ Pesanan berhasil dibuat! Admin akan memverifikasi bukti pembayaran Anda.';
@@ -118,7 +118,9 @@ if ($game_slug) {
         
         while ($pkg = $pkg_result->fetch_assoc()) {
             $packages[] = [
+                'id' => intval($pkg['id']),
                 'name' => $pkg['name'],
+                'amount' => $pkg['amount'],
                 'price' => floatval($pkg['price']),
                 'price_formatted' => 'Rp ' . number_format($pkg['price'], 0, ',', '.')
             ];
@@ -209,7 +211,7 @@ if (!$gameData) {
                             <h3><?php echo htmlspecialchars($package['name']); ?></h3>
                             <span class="package-price">Rp <?php echo number_format($package['price'], 0, ',', '.'); ?></span>
                         </div>
-                        <button class="btn-select" onclick="selectPackage('<?php echo htmlspecialchars($package['name']); ?>', <?php echo intval($package['price']); ?>)">
+                        <button class="btn-select" onclick="selectPackage(<?php echo intval($game_id); ?>, <?php echo intval($package['id']); ?>, '<?php echo htmlspecialchars($package['name']); ?>', <?php echo intval($package['price']); ?>)">
                             Pilih Paket
                         </button>
                     </div>
@@ -232,6 +234,8 @@ if (!$gameData) {
                     
                     <form id="topup-form" class="topup-form" method="POST" enctype="multipart/form-data">
                         <!-- Hidden fields for game and total price -->
+                        <input type="hidden" id="game_id" name="game_id" value="">
+                        <input type="hidden" id="package_id" name="package_id" value="">
                         <input type="hidden" id="game" name="game" value="">
                         <input type="hidden" id="total_price" name="total_price" value="">
                         
@@ -308,7 +312,11 @@ if (!$gameData) {
         const gameName = urlParams.get('game');
         document.getElementById('game').value = gameName;
         
-        function selectPackage(packageName, price) {
+        function selectPackage(gameId, packageId, packageName, price) {
+            // Set hidden IDs
+            document.getElementById('game_id').value = gameId;
+            document.getElementById('package_id').value = packageId;
+            
             // Update selected package display
             document.getElementById('selected-package').value = packageName;
             

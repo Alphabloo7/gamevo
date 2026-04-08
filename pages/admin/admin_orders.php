@@ -299,7 +299,6 @@ function formatCurrency($amount) {
                 <li><a href="admin_orders.php" class="active"><i class="fas fa-shopping-cart"></i> Daftar Order</a></li>
                 <li><a href="admin_packages.php"><i class="fas fa-box"></i> Paket Game</a></li>
                 <li><a href="admin_users.php"><i class="fas fa-users"></i> Kelola Users</a></li>
-                <li><a href="admin_products.php"><i class="fas fa-gamepad"></i> Kelola Produk</a></li>
                 <li><a href="admin_settings.php"><i class="fas fa-cog"></i> Pengaturan</a></li>
             </ul>
         </aside>
@@ -569,6 +568,15 @@ function formatCurrency($amount) {
             if (event.key === 'Escape') {
                 closeProofModal();
             }
+        });
+
+        // Handle status change - auto submit form
+        document.querySelectorAll('.select-status').forEach(select => {
+            select.addEventListener('change', function() {
+                if (this.value !== '') {
+                    this.closest('.update-form').submit();
+                }
+            });
         });
     </script>
 

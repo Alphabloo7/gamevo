@@ -171,10 +171,12 @@ function getRecentOrders($limit = 10) {
             o.status, 
             o.total_price,
             u.username,
-            p.name as product_name
+            gp.name as product_name,
+            g.name as game_name
         FROM orders o
         LEFT JOIN users u ON o.user_id = u.id
-        LEFT JOIN products p ON o.product_id = p.id
+        LEFT JOIN game_packages gp ON o.game_package_id = gp.id
+        LEFT JOIN games g ON gp.game_id = g.id
         ORDER BY o.order_date DESC
         LIMIT ?
     ");
@@ -229,15 +231,18 @@ function getAllOrders($status = null, $limit = 50, $offset = 0) {
     if ($status) {
         $stmt = $conn->prepare("
             SELECT 
-                o.id, 
+                o.id,
                 o.order_date, 
                 o.status, 
                 o.total_price,
+                o.payment_proof,
                 u.username,
-                p.name as product_name
+                gp.name as product_name,
+                g.name as game_name
             FROM orders o
             LEFT JOIN users u ON o.user_id = u.id
-            LEFT JOIN products p ON o.product_id = p.id
+            LEFT JOIN game_packages gp ON o.game_package_id = gp.id
+            LEFT JOIN games g ON gp.game_id = g.id
             WHERE o.status = ?
             ORDER BY o.order_date DESC
             LIMIT ? OFFSET ?
@@ -246,15 +251,18 @@ function getAllOrders($status = null, $limit = 50, $offset = 0) {
     } else {
         $stmt = $conn->prepare("
             SELECT 
-                o.id, 
+                o.id,
                 o.order_date, 
                 o.status, 
                 o.total_price,
+                o.payment_proof,
                 u.username,
-                p.name as product_name
+                gp.name as product_name,
+                g.name as game_name
             FROM orders o
             LEFT JOIN users u ON o.user_id = u.id
-            LEFT JOIN products p ON o.product_id = p.id
+            LEFT JOIN game_packages gp ON o.game_package_id = gp.id
+            LEFT JOIN games g ON gp.game_id = g.id
             ORDER BY o.order_date DESC
             LIMIT ? OFFSET ?
         ");

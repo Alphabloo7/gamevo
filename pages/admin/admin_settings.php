@@ -177,7 +177,6 @@ $admin = getCurrentAdmin();
                 <li><a href="admin_orders.php"><i class="fas fa-shopping-cart"></i> Daftar Order</a></li>
                 <li><a href="admin_packages.php"><i class="fas fa-box"></i> Paket Game</a></li>
                 <li><a href="admin_users.php"><i class="fas fa-users"></i> Kelola Users</a></li>
-                <li><a href="admin_products.php"><i class="fas fa-gamepad"></i> Kelola Produk</a></li>
                 <li><a href="admin_settings.php" class="active"><i class="fas fa-cog"></i> Pengaturan</a></li>
             </ul>
         </aside>
@@ -196,7 +195,7 @@ $admin = getCurrentAdmin();
             <div class="content">
                 <!-- Admin Profile Settings -->
                 <div class="settings-card">
-                    <h2>≡ƒæñ Profil Admin</h2>
+                    <h2> Profil Admin</h2>
                     <div class="info-grid">
                         <div class="info-item">
                             <div class="info-label">Nama Lengkap</div>
@@ -212,14 +211,14 @@ $admin = getCurrentAdmin();
                         </div>
                         <div class="info-item">
                             <div class="info-label">Status</div>
-                            <div class="info-value">Γ£ô Aktif</div>
+                            <div class="info-value"> Aktif</div>
                         </div>
                     </div>
                 </div>
                 
                 <!-- System Information -->
                 <div class="settings-card">
-                    <h2>Γä╣∩╕Å Informasi Sistem</h2>
+                    <h2> Informasi Sistem</h2>
                     <div class="info-grid">
                         <div class="info-item">
                             <div class="info-label">Versi PHP</div>
@@ -242,13 +241,13 @@ $admin = getCurrentAdmin();
                 
                 <!-- Admin Notes -->
                 <div class="settings-card">
-                    <h2>≡ƒô¥ Catatan Penting</h2>
+                    <h2> Catatan Penting</h2>
                     <p style="line-height: 1.6; color: rgba(255, 255, 255, 0.7);">
-                        Γ£ô Selamat datang di Admin Dashboard GAMEVO<br>
-                        Γ£ô Anda dapat mengelola orders, users, dan produk dari sini<br>
-                        Γ£ô Semua perubahan akan tercatat dalam sistem<br>
-                        Γ£ô Pastikan untuk selalu logout setelah selesai<br>
-                        Γ£ô Hubungi support jika ada kendala teknis
+                         Selamat datang di Admin Dashboard GAMEVO<br>
+                         Anda dapat mengelola orders, users, dan produk dari sini<br>
+                         Semua perubahan akan tercatat dalam sistem<br>
+                         Pastikan untuk selalu logout setelah selesai<br>
+                         Hubungi support jika ada kendala teknis
                     </p>
                 </div>
             </div>
