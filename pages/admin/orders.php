@@ -1,0 +1,387 @@
+﻿<?php
+/**
+ * GAMEVO - Admin Orders Management
+ */
+require_once '../../includes/admin_auth.php';
+
+requireAdminLogin();
+
+$admin = getCurrentAdmin();
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$status_filter = isset($_GET['status']) ? $_GET['status'] : null;
+$limit = 20;
+$offset = ($page - 1) * $limit;
+
+$orders = getAllOrders($status_filter, $limit, $offset);
+
+// Handle status update
+$message = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_id'], $_POST['status'])) {
+    $result = updateOrderStatus($_POST['order_id'], $_POST['status']);
+    $message = $result['message'];
+    $orders = getAllOrders($status_filter, $limit, $offset);
+}
+
+function formatCurrency($amount) {
+    return 'Rp ' . number_format($amount, 0, ',', '.');
+}
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kelola Orders - Admin GAMEVO</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0e27;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .admin-wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            width: 260px;
+            background: rgba(15, 23, 42, 0.95);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 30px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        
+        .sidebar-header {
+            padding: 0 20px 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .sidebar-logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .sidebar-menu {
+            list-style: none;
+        }
+        
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+        
+        .sidebar-menu a:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            border-left-color: #667eea;
+        }
+        
+        .sidebar-menu a.active {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+            border-left-color: #667eea;
+        }
+        
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+        }
+        
+        .topbar {
+            background: rgba(15, 23, 42, 0.9);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .topbar-title h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .logout-btn {
+            background: rgba(244, 67, 54, 0.2);
+            color: #ffcdd2;
+            border: 1px solid rgba(244, 67, 54, 0.5);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: #667eea;
+            border-color: #667eea;
+        }
+        
+        .message {
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .message.success {
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+            color: #c8e6c9;
+        }
+        
+        .orders-section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 25px;
+            overflow-x: auto;
+        }
+        
+        .orders-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .orders-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .orders-table td {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 14px;
+        }
+        
+        .orders-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-pending {
+            background: rgba(255, 193, 7, 0.2);
+            color: #fff9c4;
+        }
+        
+        .status-processing {
+            background: rgba(63, 81, 181, 0.2);
+            color: #c5cae9;
+        }
+        
+        .status-completed {
+            background: rgba(76, 175, 80, 0.2);
+            color: #c8e6c9;
+        }
+        
+        .status-cancelled {
+            background: rgba(244, 67, 54, 0.2);
+            color: #ffcdd2;
+        }
+        
+        .select-status {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        
+        .update-form {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .update-btn {
+            background: #667eea;
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .update-btn:hover {
+            background: #764ba2;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="dashboard.php" class="sidebar-logo">GAMEVO</a>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.php"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+                <li><a href="orders.php" class="active"><i class="fas fa-shopping-cart"></i> Daftar Order</a></li>
+                <li><a href="users.php"><i class="fas fa-users"></i> Kelola Users</a></li>
+                <li><a href="products.php"><i class="fas fa-gamepad"></i> Kelola Produk</a></li>
+                <li><a href="settings.php"><i class="fas fa-cog"></i> Pengaturan</a></li>
+            </ul>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Topbar -->
+            <div class="topbar">
+                <div class="topbar-title">
+                    <h1>Kelola Orders</h1>
+                </div>
+                <a href="logout.php" class="logout-btn">Logout</a>
+            </div>
+            
+            <!-- Content -->
+            <div class="content">
+                <?php if (!empty($message)): ?>
+                    <div class="message success"><?php echo htmlspecialchars($message); ?></div>
+                <?php endif; ?>
+                
+                <!-- Filters -->
+                <div class="filters">
+                    <a href="orders.php" class="filter-btn <?php echo !$status_filter ? 'active' : ''; ?>">Semua</a>
+                    <a href="admin_orders.php?status=pending" class="filter-btn <?php echo $status_filter === 'pending' ? 'active' : ''; ?>">Pending</a>
+                    <a href="admin_orders.php?status=processing" class="filter-btn <?php echo $status_filter === 'processing' ? 'active' : ''; ?>">Processing</a>
+                    <a href="admin_orders.php?status=completed" class="filter-btn <?php echo $status_filter === 'completed' ? 'active' : ''; ?>">Completed</a>
+                    <a href="admin_orders.php?status=cancelled" class="filter-btn <?php echo $status_filter === 'cancelled' ? 'active' : ''; ?>">Cancelled</a>
+                </div>
+                
+                <!-- Orders Table -->
+                <div class="orders-section">
+                    <?php if (!empty($orders)): ?>
+                        <table class="orders-table">
+                            <thead>
+                                <tr>
+                                    <th>ID Order</th>
+                                    <th>Username</th>
+                                    <th>Produk</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Tanggal</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($orders as $order): ?>
+                                    <tr>
+                                        <td><strong>#<?php echo $order['id']; ?></strong></td>
+                                        <td><?php echo htmlspecialchars($order['username'] ?? 'Guest'); ?></td>
+                                        <td><?php echo htmlspecialchars($order['product_name'] ?? 'Produk Dihapus'); ?></td>
+                                        <td><?php echo formatCurrency($order['total_price']); ?></td>
+                                        <td>
+                                            <span class="status-badge status-<?php echo $order['status']; ?>">
+                                                <?php echo ucfirst($order['status']); ?>
+                                            </span>
+                                        </td>
+                                        <td><?php echo date('d M Y H:i', strtotime($order['order_date'])); ?></td>
+                                        <td>
+                                            <form method="POST" class="update-form">
+                                                <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
+                                                <select name="status" class="select-status">
+                                                    <option value="">Ubah Status</option>
+                                                    <option value="pending" <?php echo $order['status'] === 'pending' ? 'disabled' : ''; ?>>Pending</option>
+                                                    <option value="processing" <?php echo $order['status'] === 'processing' ? 'disabled' : ''; ?>>Processing</option>
+                                                    <option value="completed" <?php echo $order['status'] === 'completed' ? 'disabled' : ''; ?>>Completed</option>
+                                                    <option value="cancelled" <?php echo $order['status'] === 'cancelled' ? 'disabled' : ''; ?>>Cancelled</option>
+                                                </select>
+                                                <button type="submit" class="update-btn">Update</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    <?php else: ?>
+                        <div class="empty-state">
+                            <p>Belum ada order untuk ditampilkan</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
+
