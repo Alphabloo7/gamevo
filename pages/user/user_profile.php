@@ -151,8 +151,8 @@ $user = getCurrentUser();
             </a>
             <div class="nav-menu">
                 <a href="../../index.php" class="nav-link">BERANDA</a>
-                <a href="profile.php" class="nav-link active">PROFIL</a>
-                <a href="logout.php" class="nav-link">LOGOUT</a>
+                <a href="user_profile.php" class="nav-link active">PROFIL</a>
+                <a href="user_logout.php" class="nav-link">LOGOUT</a>
             </div>
         </div>
     </nav>
@@ -188,7 +188,7 @@ $user = getCurrentUser();
             
             <div class="profile-actions">
                 <button class="btn btn-primary">Edit Profil</button>
-                <a href="logout.php" class="btn btn-logout">Logout</a>
+                <a href="user_logout.php" class="btn btn-logout">Logout</a>
             </div>
         </div>
     </div>

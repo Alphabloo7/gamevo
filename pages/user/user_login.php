@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($result['success']) {
         // Redirect based on login type
         if ($result['type'] === 'admin') {
-            header("Location: ../admin/dashboard.php");
+            header("Location: ../admin/admin_dashboard.php");
         } else {
             header("Location: ../../index.php");
         }
@@ -203,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         <?php endif; ?>
         
-        <form method="POST" action="login.php">
+        <form method="POST" action="user_login.php">
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" placeholder="Masukkan username" value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>" required>
@@ -218,7 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
         
         <div class="auth-footer">
-            Belum punya akun? <a href="register.php">Daftar di sini</a>
+            Belum punya akun? <a href="user_register.php">Daftar di sini</a>
         </div>
     </div>
 </body>

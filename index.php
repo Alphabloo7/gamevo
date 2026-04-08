@@ -124,7 +124,7 @@ $user = getCurrentUser();
                     if (!userMenu) {
                         // User not logged in - show hint and redirect
                         if (confirm('Masuk sebagai Admin?\n\nKlik OK untuk lanjut ke halaman login.')) {
-                            window.location.href = 'pages/user/login.php';
+                            window.location.href = 'pages/user/user_login.php';
                         }
                     }
                 });
@@ -150,15 +150,15 @@ $user = getCurrentUser();
                             <div class="user-avatar">
                                 <?php echo strtoupper(substr($user['full_name'], 0, 1)); ?>
                             </div>
-                            <a href="pages/user/profile.php"><?php echo htmlspecialchars($user['username']); ?></a>
+                            <a href="pages/user/user_profile.php"><?php echo htmlspecialchars($user['username']); ?></a>
                         </div>
-                        <a href="pages/user/logout.php" class="logout-link">Logout</a>
+                        <a href="pages/user/user_logout.php" class="logout-link">Logout</a>
                     </div>
                 <?php else: ?>
                     <!-- User not logged in -->
                     <div class="auth-links">
-                        <a href="pages/user/login.php" class="login-link">LOGIN</a>
-                        <a href="pages/user/register.php" class="register-link">DAFTAR</a>
+                        <a href="pages/user/user_login.php" class="login-link">LOGIN</a>
+                        <a href="pages/user/user_register.php" class="register-link">DAFTAR</a>
                     </div>
                 <?php endif; ?>
             </div>
@@ -183,7 +183,7 @@ $user = getCurrentUser();
         <section class="products-section">
             <div class="products-container">
                 <!-- Product 1 -->
-                <a href="pages/user/top-up.php?game=roblox" class="product-card">
+                <a href="pages/user/user_top-up.php?game=roblox" class="product-card">
                     <div class="product-image">
                         <img src="assets/images/rblx_icon.jpg" alt="Roblox">
                     </div>
@@ -193,7 +193,7 @@ $user = getCurrentUser();
                 </a>
 
                 <!-- Product 2 -->
-                <a href="pages/user/top-up.php?game=mobile-legends" class="product-card">
+                <a href="pages/user/user_top-up.php?game=mobile-legends" class="product-card">
                     <div class="product-image">
                         <img src="assets/images/ml_icon.jpg" alt="Mobile Legends">
                     </div>
@@ -203,7 +203,7 @@ $user = getCurrentUser();
                 </a>
 
                 <!-- Product 3 -->
-                <a href="pages/user/top-up.php?game=pubg" class="product-card">
+                <a href="pages/user/user_top-up.php?game=pubg" class="product-card">
                     <div class="product-image">
                         <img src="assets/images/pubg_icon.jpg" alt="PUBG">
                     </div>
@@ -213,7 +213,7 @@ $user = getCurrentUser();
                 </a>
 
                 <!-- Product 4 -->
-                <a href="pages/user/top-up.php?game=genshin-impact" class="product-card">
+                <a href="pages/user/user_top-up.php?game=genshin-impact" class="product-card">
                     <div class="product-image">
                         <img src="assets/images/gi_icon.jpeg" alt="Genshin Impact">
                     </div>

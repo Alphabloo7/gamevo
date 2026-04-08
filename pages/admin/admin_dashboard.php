@@ -382,15 +382,15 @@ function formatCurrency($amount) {
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <a href="dashboard.php" class="sidebar-logo">GAMEVO</a>
+                <a href="admin_dashboard.php" class="sidebar-logo">GAMEVO</a>
             </div>
             
             <ul class="sidebar-menu">
-                <li><a href="dashboard.php" class="active"><i class="fas fa-chart-line"></i> Dashboard</a></li>
-                <li><a href="orders.php"><i class="fas fa-shopping-cart"></i> Daftar Order</a></li>
-                <li><a href="users.php"><i class="fas fa-users"></i> Kelola Users</a></li>
-                <li><a href="products.php"><i class="fas fa-gamepad"></i> Kelola Produk</a></li>
-                <li><a href="settings.php"><i class="fas fa-cog"></i> Pengaturan</a></li>
+                <li><a href="admin_dashboard.php" class="active"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+                <li><a href="admin_orders.php"><i class="fas fa-shopping-cart"></i> Daftar Order</a></li>
+                <li><a href="admin_users.php"><i class="fas fa-users"></i> Kelola Users</a></li>
+                <li><a href="admin_products.php"><i class="fas fa-gamepad"></i> Kelola Produk</a></li>
+                <li><a href="admin_settings.php"><i class="fas fa-cog"></i> Pengaturan</a></li>
             </ul>
         </aside>
         
@@ -412,7 +412,7 @@ function formatCurrency($amount) {
                             <div class="admin-role"><?php echo ucfirst($admin['role']); ?></div>
                         </div>
                     </div>
-                    <a href="logout.php" class="logout-btn">Logout</a>
+                    <a href="admin_logout.php" class="logout-btn">Logout</a>
                 </div>
             </div>
             
@@ -461,7 +461,7 @@ function formatCurrency($amount) {
                 <div class="orders-section">
                     <div class="section-title">
                         <span>Pesanan Terbaru</span>
-                        <a href="orders.php" class="view-all-btn">Lihat Semua</a>
+                        <a href="admin_orders.php" class="view-all-btn">Lihat Semua</a>
                     </div>
                     
                     <?php if (!empty($recent_orders)): ?>

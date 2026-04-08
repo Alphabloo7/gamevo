@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if ($result['success']) {
             // Redirect to login page after 2 seconds
-            header("refresh:2;url=login.php");
+            header("refresh:2;url=user_login.php");
         }
     }
 }
@@ -197,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         <?php endif; ?>
         
-        <form method="POST" action="register.php">
+        <form method="POST" action="user_register.php">
             <div class="form-group">
                 <label for="full_name">Nama Lengkap</label>
                 <input type="text" id="full_name" name="full_name" placeholder="Masukkan nama lengkap" value="<?php echo isset($_POST['full_name']) ? htmlspecialchars($_POST['full_name']) : ''; ?>" required>
@@ -227,7 +227,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
         
         <div class="auth-footer">
-            Sudah punya akun? <a href="login.php">Login di sini</a>
+            Sudah punya akun? <a href="user_login.php">Login di sini</a>
         </div>
     </div>
 </body>
