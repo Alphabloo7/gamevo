@@ -4,6 +4,11 @@
  */
 require_once '../../includes/admin_auth.php';
 
+// Clear cache headers
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 requireAdminLogin();
 
 global $conn;
@@ -24,6 +29,7 @@ while ($row = $result->fetch_assoc()) {
     <title>Kelola Users - Admin GAMEVO</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="../../assets/css/responsive.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
@@ -224,7 +230,7 @@ while ($row = $result->fetch_assoc()) {
                                         <td><?php echo htmlspecialchars($user['email']); ?></td>
                                         <td>
                                             <?php if ($user['is_active']): ?>
-                                                <span class="status-active">Γ£ô Aktif</span>
+                                                <span class="status-active">Aktif</span>
                                             <?php else: ?>
                                                 <span style="color: #ffcdd2;">Nonaktif</span>
                                             <?php endif; ?>

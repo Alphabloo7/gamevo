@@ -151,6 +151,12 @@ function unifiedLogin($username, $password) {
             return ['success' => false, 'message' => 'Username atau password salah', 'type' => null];
         }
         
+        // Clear any existing user session to prevent conflicts
+        unset($_SESSION['user_id']);
+        unset($_SESSION['username']);
+        unset($_SESSION['full_name']);
+        unset($_SESSION['logged_in']);
+        
         // Set admin session
         $_SESSION['admin_id'] = $admin['id'];
         $_SESSION['admin_username'] = $admin['username'];
@@ -192,6 +198,13 @@ function unifiedLogin($username, $password) {
     if (!password_verify($password, $user['password'])) {
         return ['success' => false, 'message' => 'Username atau password salah', 'type' => null];
     }
+    
+    // Clear any existing admin session to prevent conflicts
+    unset($_SESSION['admin_id']);
+    unset($_SESSION['admin_username']);
+    unset($_SESSION['admin_full_name']);
+    unset($_SESSION['admin_role']);
+    unset($_SESSION['admin_logged_in']);
     
     // Set user session
     $_SESSION['user_id'] = $user['id'];
@@ -235,6 +248,10 @@ function getCurrentUser() {
  * Logout user
  */
 function logoutUser() {
+    // Clear all session variables
+    session_unset();
+    
+    // Destroy the session
     session_destroy();
     return ['success' => true, 'message' => 'Logout berhasil'];
 }

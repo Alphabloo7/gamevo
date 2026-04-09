@@ -7,9 +7,19 @@ require_once '../../includes/admin_auth.php';
 // Require admin login
 requireAdminLogin();
 
+// Prevent caching
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 $admin = getCurrentAdmin();
 $stats = getSalesStatistics();
+$today_stats = getTodaysSalesSummary();
 $recent_orders = getRecentOrders(10);
+$latest_transactions = getLatestTransactions(15);
+$daily_sales = getDailySalesData(30);
+$sales_by_game = getSalesByGame(10);
+$sales_by_status = getSalesByStatus();
 
 // Format currency
 function formatCurrency($amount) {
@@ -24,7 +34,9 @@ function formatCurrency($amount) {
     <title>Admin Dashboard - GAMEVO</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="../../assets/css/responsive.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <style>
         * {
             margin: 0;
@@ -344,6 +356,134 @@ function formatCurrency($amount) {
             opacity: 0.5;
         }
         
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .chart-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+        
+        .chart-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .chart-title i {
+            color: #667eea;
+            font-size: 20px;
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+            margin-bottom: 10px;
+        }
+        
+        .chart-wrapper canvas {
+            max-height: 300px;
+        }
+        
+        .realtime-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-left: auto;
+        }
+        
+        .realtime-dot {
+            width: 8px;
+            height: 8px;
+            background: #4caf50;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+            }
+            50% {
+                opacity: 0.8;
+                box-shadow: 0 0 0 6px rgba(76, 175, 80, 0);
+            }
+        }
+        
+        .today-stats-section {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .today-stats-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .today-stats-title i {
+            color: #667eea;
+        }
+        
+        .today-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .today-stat-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .today-stat-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(102, 126, 234, 0.5);
+        }
+        
+        .today-stat-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        
+        .today-stat-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
         @media (max-width: 768px) {
             .sidebar {
                 width: 200px;
@@ -363,6 +503,10 @@ function formatCurrency($amount) {
             }
             
             .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .charts-container {
                 grid-template-columns: 1fr;
             }
             
@@ -418,33 +562,53 @@ function formatCurrency($amount) {
             
             <!-- Content -->
             <div class="content">
+                <!-- Today's Sales Section -->
+                <div class="today-stats-section">
+                    <div class="today-stats-title">
+                        <i class="fas fa-fire"></i> Penjualan Hari Ini
+                        <div class="realtime-indicator">
+                            <div class="realtime-dot"></div>
+                            <span>Real-time</span>
+                        </div>
+                    </div>
+                    <div class="today-stats-grid">
+                        <div class="today-stat-item">
+                            <div class="today-stat-label">Total Order</div>
+                            <div class="today-stat-value" id="today-total-orders"><?php echo $today_stats['total_orders']; ?></div>
+                        </div>
+                        <div class="today-stat-item">
+                            <div class="today-stat-label">Selesai</div>
+                            <div class="today-stat-value" id="today-completed"><?php echo $today_stats['completed']; ?></div>
+                        </div>
+                        <div class="today-stat-item">
+                            <div class="today-stat-label">Pending</div>
+                            <div class="today-stat-value" id="today-pending"><?php echo $today_stats['pending']; ?></div>
+                        </div>
+                        <div class="today-stat-item">
+                            <div class="today-stat-label">Revenue</div>
+                            <div class="today-stat-value" id="today-revenue"><?php echo formatCurrency($today_stats['revenue']); ?></div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Statistics Cards -->
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-header">
-                            <div class="stat-title">Total Revenue</div>
-                            <div class="stat-icon">💰</div>
+                            <div class="stat-title">Total Transaksi Hari Ini</div>
+                            <div class="stat-icon">📦</div>
                         </div>
-                        <div class="stat-value"><?php echo formatCurrency($stats['total_revenue']); ?></div>
-                        <div class="stat-change">Dari semua transaksi</div>
+                        <div class="stat-value" id="card-total-orders"><?php echo $today_stats['total_orders']; ?></div>
+                        <div class="stat-change"><?php echo $today_stats['completed']; ?> selesai, <?php echo $today_stats['pending']; ?> pending</div>
                     </div>
                     
                     <div class="stat-card">
                         <div class="stat-header">
                             <div class="stat-title">Revenue Hari Ini</div>
-                            <div class="stat-icon">📈</div>
+                            <div class="stat-icon">💰</div>
                         </div>
-                        <div class="stat-value"><?php echo formatCurrency($stats['today_revenue']); ?></div>
-                        <div class="stat-change">Transaksi selesai hari ini</div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div class="stat-title">Total Orders</div>
-                            <div class="stat-icon">📦</div>
-                        </div>
-                        <div class="stat-value"><?php echo $stats['total_orders']; ?></div>
-                        <div class="stat-change"><?php echo $stats['completed_orders']; ?> selesai, <?php echo $stats['pending_orders']; ?> pending</div>
+                        <div class="stat-value" id="card-today-revenue"><?php echo formatCurrency($today_stats['revenue']); ?></div>
+                        <div class="stat-change">Dari transaksi completed</div>
                     </div>
                     
                     <div class="stat-card">
@@ -454,6 +618,48 @@ function formatCurrency($amount) {
                         </div>
                         <div class="stat-value"><?php echo $stats['total_users']; ?></div>
                         <div class="stat-change">Terdaftar di sistem</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-title">All-Time Revenue</div>
+                            <div class="stat-icon">📊</div>
+                        </div>
+                        <div class="stat-value"><?php echo formatCurrency($stats['total_revenue']); ?></div>
+                        <div class="stat-change">Total dari semua transaksi</div>
+                    </div>
+                </div>
+                
+                <!-- Charts Section -->
+                <div class="charts-container">
+                    <!-- Daily Sales Chart -->
+                    <div class="chart-card">
+                        <div class="chart-title">
+                            <i class="fas fa-chart-line"></i> Penjualan Harian (30 Hari)
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="dailySalesChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Sales by Game Chart -->
+                    <div class="chart-card">
+                        <div class="chart-title">
+                            <i class="fas fa-gamepad"></i> Penjualan Per Game
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="gamesSalesChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Sales by Status Chart -->
+                    <div class="chart-card">
+                        <div class="chart-title">
+                            <i class="fas fa-chart-pie"></i> Order Berdasarkan Status
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="statusChart"></canvas>
+                        </div>
                     </div>
                 </div>
                 
@@ -503,5 +709,171 @@ function formatCurrency($amount) {
             </div>
         </main>
     </div>
+    
+    <script>
+        // Chart.js configuration
+        Chart.defaults.color = 'rgba(255, 255, 255, 0.6)';
+        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+        Chart.defaults.scale.grid.color = 'rgba(255, 255, 255, 0.05)';
+        
+        // Function to format currency
+        function formatCurrency(amount) {
+            return 'Rp ' + amount.toLocaleString('id-ID');
+        }
+        
+        // Real-time data update function
+        function updateRealtimeData() {
+            fetch('api_realtime_data.php?action=today')
+                .then(response => response.json())
+                .then(data => {
+                    // Update today's stats section
+                    document.getElementById('today-total-orders').textContent = data.total_orders;
+                    document.getElementById('today-completed').textContent = data.completed;
+                    document.getElementById('today-pending').textContent = data.pending;
+                    document.getElementById('today-revenue').textContent = formatCurrency(data.revenue);
+                    
+                    // Update statistics cards
+                    document.getElementById('card-total-orders').textContent = data.total_orders;
+                    document.getElementById('card-today-revenue').textContent = formatCurrency(data.revenue);
+                })
+                .catch(error => console.error('Error fetching real-time data:', error));
+        }
+        
+        // Auto-refresh every 30 seconds
+        setInterval(updateRealtimeData, 30000);
+        
+        // Also update on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initial update after 5 seconds to ensure page is fully loaded
+            setTimeout(updateRealtimeData, 5000);
+        });
+        
+        // Daily Sales Chart
+        const dailySalesCtx = document.getElementById('dailySalesChart').getContext('2d');
+        new Chart(dailySalesCtx, {
+            type: 'line',
+            data: {
+                labels: <?php echo json_encode($daily_sales['labels']); ?>,
+                datasets: [{
+                    label: 'Penjualan (Rp)',
+                    data: <?php echo json_encode($daily_sales['data']); ?>,
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#667eea',
+                    pointBorderColor: '#667eea',
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointHoverBackgroundColor: '#764ba2'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: {
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            font: { size: 12, weight: '600' }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'Rp ' + value.toLocaleString('id-ID');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Sales by Game Chart
+        const gameCtx = document.getElementById('gamesSalesChart').getContext('2d');
+        new Chart(gameCtx, {
+            type: 'bar',
+            data: {
+                labels: <?php echo json_encode($sales_by_game['labels']); ?>,
+                datasets: [{
+                    label: 'Revenue (Rp)',
+                    data: <?php echo json_encode($sales_by_game['data']); ?>,
+                    backgroundColor: [
+                        'rgba(102, 126, 234, 0.8)',
+                        'rgba(118, 75, 162, 0.8)',
+                        'rgba(237, 100, 166, 0.8)',
+                        'rgba(255, 154, 158, 0.8)',
+                        'rgba(255, 193, 7, 0.8)',
+                        'rgba(76, 175, 80, 0.8)',
+                        'rgba(63, 81, 181, 0.8)',
+                        'rgba(233, 30, 99, 0.8)',
+                        'rgba(3, 169, 244, 0.8)',
+                        'rgba(156, 39, 176, 0.8)'
+                    ],
+                    borderRadius: 6,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'Rp ' + value.toLocaleString('id-ID');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Sales by Status Chart
+        const statusCtx = document.getElementById('statusChart').getContext('2d');
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: <?php echo json_encode($sales_by_status['labels']); ?>,
+                datasets: [{
+                    data: <?php echo json_encode($sales_by_status['data']); ?>,
+                    backgroundColor: [
+                        'rgba(255, 193, 7, 0.8)',
+                        'rgba(63, 81, 181, 0.8)',
+                        'rgba(76, 175, 80, 0.8)',
+                        'rgba(244, 67, 54, 0.8)'
+                    ],
+                    borderColor: '#0a0e27',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            font: { size: 12, weight: '600' },
+                            padding: 15
+                        }
+                    }
+                }
+            }
+        });
+    </script>
 </body>
 </html>

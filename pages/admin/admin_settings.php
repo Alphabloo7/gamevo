@@ -4,6 +4,11 @@
  */
 require_once '../../includes/admin_auth.php';
 
+// Clear cache headers
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 requireAdminLogin();
 
 $admin = getCurrentAdmin();
@@ -16,6 +21,7 @@ $admin = getCurrentAdmin();
     <title>Pengaturan Admin - GAMEVO</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="../../assets/css/responsive.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {

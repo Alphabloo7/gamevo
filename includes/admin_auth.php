@@ -99,7 +99,12 @@ function logoutAdmin() {
         $stmt->close();
     }
     
+    // Clear all session variables
+    session_unset();
+    
+    // Destroy the session
     session_destroy();
+    
     return ['success' => true, 'message' => 'Logout berhasil'];
 }
 
@@ -199,6 +204,30 @@ function getRecentOrders($limit = 10) {
 function updateOrderStatus($order_id, $status) {
     global $conn;
     
+    // First, check current status of the order
+    $stmt = $conn->prepare("SELECT status FROM orders WHERE id = ?");
+    $stmt->bind_param("i", $order_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows === 0) {
+        return ['success' => false, 'message' => 'Order tidak ditemukan'];
+    }
+    
+    $current_status = $result->fetch_assoc()['status'];
+    $stmt->close();
+    
+    // Prevent changing completed orders
+    if ($current_status === 'completed') {
+        return ['success' => false, 'message' => 'Order yang sudah completed tidak dapat diubah'];
+    }
+    
+    // Prevent changing cancelled orders
+    if ($current_status === 'cancelled') {
+        return ['success' => false, 'message' => 'Order yang sudah cancelled tidak dapat diubah'];
+    }
+    
+    // Validate new status
     $allowed_status = ['pending', 'processing', 'completed', 'cancelled'];
     if (!in_array($status, $allowed_status)) {
         return ['success' => false, 'message' => 'Status tidak valid'];
@@ -269,6 +298,233 @@ function getAllOrders($status = null, $limit = 50, $offset = 0) {
         $stmt->bind_param("ii", $limit, $offset);
     }
     
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $orders = [];
+    while ($row = $result->fetch_assoc()) {
+        $orders[] = $row;
+    }
+    $stmt->close();
+    
+    return $orders;
+}
+
+/**
+ * Get daily sales data for the last 30 days
+ */
+function getDailySalesData($days = 30) {
+    global $conn;
+    
+    $data = [];
+    $labels = [];
+    
+    // Get sales for each day
+    $stmt = $conn->prepare("
+        SELECT 
+            DATE(order_date) as date,
+            SUM(total_price) as revenue,
+            COUNT(*) as orders
+        FROM orders
+        WHERE status = 'completed' 
+        AND order_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+        GROUP BY DATE(order_date)
+        ORDER BY DATE(order_date) ASC
+    ");
+    $stmt->bind_param("i", $days);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    // Create array with all dates
+    $start_date = new DateTime("now -$days days");
+    $end_date = new DateTime("now");
+    $interval = new DateInterval('P1D');
+    $date_range = new DatePeriod($start_date, $interval, $end_date);
+    
+    $sales_by_date = [];
+    foreach ($date_range as $date) {
+        $date_str = $date->format('Y-m-d');
+        $sales_by_date[$date_str] = ['revenue' => 0, 'orders' => 0];
+    }
+    
+    // Fill with actual data
+    while ($row = $result->fetch_assoc()) {
+        $sales_by_date[$row['date']] = [
+            'revenue' => (float)$row['revenue'],
+            'orders' => (int)$row['orders']
+        ];
+    }
+    $stmt->close();
+    
+    // Format for chart
+    foreach ($sales_by_date as $date => $sales) {
+        $labels[] = date('d M', strtotime($date));
+        $data[] = $sales['revenue'];
+    }
+    
+    return [
+        'labels' => $labels,
+        'data' => $data
+    ];
+}
+
+/**
+ * Get sales data by game
+ */
+function getSalesByGame($limit = 10) {
+    global $conn;
+    
+    $stmt = $conn->prepare("
+        SELECT 
+            g.name as game_name,
+            SUM(o.total_price) as revenue,
+            COUNT(o.id) as order_count
+        FROM orders o
+        LEFT JOIN game_packages gp ON o.game_package_id = gp.id
+        LEFT JOIN games g ON gp.game_id = g.id
+        WHERE o.status = 'completed' AND g.id IS NOT NULL
+        GROUP BY g.id, g.name
+        ORDER BY revenue DESC
+        LIMIT ?
+    ");
+    $stmt->bind_param("i", $limit);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $games = [];
+    $revenues = [];
+    
+    while ($row = $result->fetch_assoc()) {
+        $games[] = $row['game_name'];
+        $revenues[] = (float)$row['revenue'];
+    }
+    $stmt->close();
+    
+    return [
+        'labels' => $games,
+        'data' => $revenues
+    ];
+}
+
+/**
+ * Get sales by status
+ */
+function getSalesByStatus() {
+    global $conn;
+    
+    $result = $conn->query("
+        SELECT 
+            status,
+            COUNT(*) as count,
+            SUM(total_price) as revenue
+        FROM orders
+        GROUP BY status
+    ");
+    
+    $statuses = [];
+    $counts = [];
+    $colors = [
+        'pending' => '#ffc107',
+        'processing' => '#3f51b5',
+        'completed' => '#4caf50',
+        'cancelled' => '#f44336'
+    ];
+    
+    while ($row = $result->fetch_assoc()) {
+        $statuses[] = ucfirst($row['status']);
+        $counts[] = (int)$row['count'];
+    }
+    
+    return [
+        'labels' => $statuses,
+        'data' => $counts,
+        'colors' => $colors
+    ];
+}
+
+/**
+ * Get real-time sales data (last hour)
+ */
+function getRealtimeSalesData($minutes = 60) {
+    global $conn;
+    
+    $stmt = $conn->prepare("
+        SELECT 
+            DATE(order_date) as date,
+            HOUR(order_date) as hour,
+            COUNT(*) as orders,
+            SUM(total_price) as revenue
+        FROM orders
+        WHERE status = 'completed' 
+        AND order_date >= DATE_SUB(NOW(), INTERVAL ? MINUTE)
+        GROUP BY DATE(order_date), HOUR(order_date)
+        ORDER BY order_date DESC
+    ");
+    $stmt->bind_param("i", $minutes);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[] = [
+            'time' => $row['date'] . ' ' . str_pad($row['hour'], 2, '0', STR_PAD_LEFT) . ':00',
+            'orders' => (int)$row['orders'],
+            'revenue' => (float)$row['revenue']
+        ];
+    }
+    $stmt->close();
+    
+    return $data;
+}
+
+/**
+ * Get today's sales summary
+ */
+function getTodaysSalesSummary() {
+    global $conn;
+    
+    $result = $conn->query("
+        SELECT 
+            COUNT(*) as total_orders,
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN status = 'completed' THEN total_price ELSE 0 END) as revenue
+        FROM orders
+        WHERE DATE(order_date) = CURDATE()
+    ");
+    
+    $summary = $result->fetch_assoc();
+    return [
+        'total_orders' => (int)($summary['total_orders'] ?? 0),
+        'completed' => (int)($summary['completed'] ?? 0),
+        'pending' => (int)($summary['pending'] ?? 0),
+        'revenue' => (float)($summary['revenue'] ?? 0)
+    ];
+}
+
+/**
+ * Get latest transactions (real-time)
+ */
+function getLatestTransactions($limit = 15) {
+    global $conn;
+    
+    $stmt = $conn->prepare("
+        SELECT 
+            o.id, 
+            o.order_date, 
+            o.status, 
+            o.total_price,
+            u.username,
+            gp.name as product_name,
+            g.name as game_name
+        FROM orders o
+        LEFT JOIN users u ON o.user_id = u.id
+        LEFT JOIN game_packages gp ON o.game_package_id = gp.id
+        LEFT JOIN games g ON gp.game_id = g.id
+        ORDER BY o.order_date DESC
+        LIMIT ?
+    ");
+    $stmt->bind_param("i", $limit);
     $stmt->execute();
     $result = $stmt->get_result();
     

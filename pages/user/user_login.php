@@ -2,17 +2,28 @@
 /**
  * GAMEVO - Login Page (Unified Login for Users & Admin)
  */
+
+// Set cache prevention headers FIRST
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 require_once '../../includes/auth.php';
 require_once '../../includes/admin_auth.php';
 
-// Redirect if already logged in
-if (isLoggedIn()) {
-    header("Location: ../../index.php");
-    exit();
-}
-if (isAdminLoggedIn()) {
-    header("Location: ../admin/dashboard.php");
-    exit();
+// Check if explicitly trying to access a form/login, then don't redirect
+$is_login_attempt = ($_SERVER['REQUEST_METHOD'] === 'POST');
+
+// Redirect if already logged in (but only if not attempting login)
+if (!$is_login_attempt) {
+    if (isLoggedIn()) {
+        header("Location: ../../index.php");
+        exit();
+    }
+    if (isAdminLoggedIn()) {
+        header("Location: ../admin/admin_dashboard.php");
+        exit();
+    }
 }
 
 $message = '';
@@ -23,9 +34,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = isset($_POST['username']) ? trim($_POST['username']) : '';
     $password = isset($_POST['password']) ? $_POST['password'] : '';
     
+    // Clear any existing sessions to prevent conflicts
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_unset();
+    }
+    
     $result = unifiedLogin($username, $password);
     
     if ($result['success']) {
+        // Regenerate session ID for security
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_regenerate_id(true);
+        }
+        
+        // Clear cache headers again before redirect
+        header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+        header("Pragma: no-cache");
+        header("Expires: 0");
+        
+        // Small delay to ensure session is properly set
+        usleep(100000); // 0.1 second delay
+        
         // Redirect based on login type
         if ($result['type'] === 'admin') {
             header("Location: ../admin/admin_dashboard.php");

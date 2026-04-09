@@ -4,6 +4,11 @@
  */
 require_once '../../includes/admin_auth.php';
 
+// Clear cache headers
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 requireAdminLogin();
 
 $admin = getCurrentAdmin();
@@ -34,6 +39,7 @@ function formatCurrency($amount) {
     <title>Kelola Orders - Admin GAMEVO</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="../../assets/css/responsive.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
@@ -252,10 +258,50 @@ function formatCurrency($amount) {
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
             color: white;
-            padding: 6px 10px;
-            border-radius: 4px;
+            padding: 8px 12px;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+        
+        .select-status:hover {
+            background: rgba(102, 126, 234, 0.2);
+            border-color: rgba(102, 126, 234, 0.5);
+        }
+        
+        .select-status:focus {
+            outline: none;
+            background: rgba(102, 126, 234, 0.3);
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        /* Style for select options */
+        .select-status option {
+            background: #0a0e27;
+            color: #fff;
+            padding: 8px 12px;
+            margin: 4px 0;
+            border: none;
+        }
+        
+        .select-status option:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .select-status option:checked {
+            background: linear-gradient(#667eea, #667eea);
+            color: white;
+        }
+        
+        .select-status option:disabled {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.5);
+            cursor: not-allowed;
         }
         
         .update-form {
@@ -363,17 +409,27 @@ function formatCurrency($amount) {
                                                         <i class="fas fa-eye"></i> Lihat
                                                     </button>
                                                 <?php endif; ?>
-                                                <form method="POST" class="update-form">
-                                                    <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
-                                                    <select name="status" class="select-status">
-                                                        <option value="">Ubah Status</option>
-                                                        <option value="pending" <?php echo $order['status'] === 'pending' ? 'disabled' : ''; ?>>Pending</option>
-                                                        <option value="processing" <?php echo $order['status'] === 'processing' ? 'disabled' : ''; ?>>Processing</option>
-                                                        <option value="completed" <?php echo $order['status'] === 'completed' ? 'disabled' : ''; ?>>Completed</option>
-                                                        <option value="cancelled" <?php echo $order['status'] === 'cancelled' ? 'disabled' : ''; ?>>Cancelled</option>
-                                                    </select>
-                                                    <button type="submit" class="update-btn">Update</button>
-                                                </form>
+                                                
+                                                <?php if ($order['status'] === 'completed' || $order['status'] === 'cancelled'): ?>
+                                                    <!-- Status locked - cannot be changed -->
+                                                    <div class="status-locked">
+                                                        <i class="fas fa-lock"></i>
+                                                        <span><?php echo $order['status'] === 'completed' ? 'Selesai (Terkunci)' : 'Dibatalkan (Terkunci)'; ?></span>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <!-- Status can be changed -->
+                                                    <form method="POST" class="update-form">
+                                                        <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
+                                                        <select name="status" class="select-status">
+                                                            <option value="">Ubah Status</option>
+                                                            <option value="pending" <?php echo $order['status'] === 'pending' ? 'disabled' : ''; ?>>Pending</option>
+                                                            <option value="processing" <?php echo $order['status'] === 'processing' ? 'disabled' : ''; ?>>Processing</option>
+                                                            <option value="completed" <?php echo $order['status'] === 'completed' ? 'disabled' : ''; ?>>Completed</option>
+                                                            <option value="cancelled" <?php echo $order['status'] === 'cancelled' ? 'disabled' : ''; ?>>Cancelled</option>
+                                                        </select>
+                                                        <button type="submit" class="update-btn">Update</button>
+                                                    </form>
+                                                <?php endif; ?>
                                             </div>
                                         </td>
                                     </tr>
@@ -427,6 +483,23 @@ function formatCurrency($amount) {
 
         .view-proof-btn:hover {
             background-color: #45a049;
+        }
+
+        .status-locked {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+            border-radius: 6px;
+            color: #ffcdd2;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-locked i {
+            font-size: 14px;
         }
 
         .proof-modal {
